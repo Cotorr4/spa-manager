@@ -135,8 +135,8 @@ function crear() {
         responderJSON(false, null, 'Fecha no válida');
     }
     
-    if (!esHoraValida($datos['hora'])) {
-        responderJSON(false, null, 'Hora no válida');
+    if (!esHoraValida($datos['hora']) || !esHoraBloque30Min($datos['hora'])) {
+        responderJSON(false, null, 'La hora debe ser en bloques de 30 minutos (ej: 08:00, 08:30, 09:00)');
     }
     
     $modelo = new Reserva();

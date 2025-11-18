@@ -183,7 +183,7 @@ $usuario = usuarioActual();
                     
                     <div class="form-group">
                         <label for="hora">Hora *</label>
-                        <input type="time" id="hora" name="hora" required>
+                        <input type="time" id="hora" name="hora" step="1800" required>
                     </div>
                 </div>
                 

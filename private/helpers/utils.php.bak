@@ -1,13 +1,4 @@
-<?php
-// Validar hora en bloques de 30 minutos
-function esHoraBloque30Min($hora) {
-    if (!esHoraValida($hora)) return false;
-    list($h, $m) = explode(':', substr($hora, 0, 5));
-    $minutos = (int)$m;
-    return ($minutos === 0 || $minutos === 30);
-}
-
-// Generar ID único para clientes
+// Generar ID único para clientes (formato: CLI-YYYYMMDD-XXXX)
 function generarClienteUID() {
     $fecha = date('Ymd');
     $random = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
@@ -16,10 +7,14 @@ function generarClienteUID() {
 
 // Respuesta JSON estandarizada
 function responderJSON($success, $data = null, $mensaje = '') {
+    // Limpiar cualquier output previo
     if (ob_get_length()) ob_clean();
+    
+    // Asegurar header JSON
     if (!headers_sent()) {
         header('Content-Type: application/json; charset=utf-8');
     }
+    
     echo json_encode([
         'success' => $success,
         'data' => $data,
@@ -28,14 +23,14 @@ function responderJSON($success, $data = null, $mensaje = '') {
     exit;
 }
 
-// Formatear fecha para mostrar
+// Formatear fecha para mostrar (de Y-m-d a d/m/Y)
 function formatearFecha($fecha) {
     if (!$fecha) return '';
     $d = DateTime::createFromFormat('Y-m-d', $fecha);
     return $d ? $d->format('d/m/Y') : $fecha;
 }
 
-// Formatear hora
+// Formatear hora (de H:i:s a H:i)
 function formatearHora($hora) {
     if (!$hora) return '';
     $h = DateTime::createFromFormat('H:i:s', $hora);
@@ -55,6 +50,7 @@ function registrarLog($mensaje, $tipo = 'INFO') {
     $log_file = __DIR__ . '/../../storage/logs/app.log';
     $log_dir = dirname($log_file);
     
+    // Crear directorio si no existe
     if (!is_dir($log_dir)) {
         mkdir($log_dir, 0755, true);
     }
@@ -64,7 +60,7 @@ function registrarLog($mensaje, $tipo = 'INFO') {
     @file_put_contents($log_file, $linea, FILE_APPEND);
 }
 
-// Calcular edad
+// Calcular edad desde fecha de nacimiento
 function calcularEdad($fecha_nacimiento) {
     if (!$fecha_nacimiento) return null;
     $hoy = new DateTime();
@@ -73,10 +69,21 @@ function calcularEdad($fecha_nacimiento) {
     return $hoy->diff($nacimiento)->y;
 }
 
-// Generar slug para URLs
+// Generar slug para URLs (útil para blog)
 function generarSlug($texto) {
     $texto = strtolower(trim($texto));
     $texto = preg_replace('/[^a-z0-9-]/', '-', $texto);
     $texto = preg_replace('/-+/', '-', $texto);
     return trim($texto, '-');
+}
+// Agregar después de la función esHoraValida() en utils.php
+
+function esHoraBloque30Min($hora) {
+    if (!esHoraValida($hora)) return false;
+    
+    list($h, $m) = explode(':', substr($hora, 0, 5));
+    $minutos = (int)$m;
+    
+    // Solo permitir :00 o :30
+    return ($minutos === 0 || $minutos === 30);
 }

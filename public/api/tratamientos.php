@@ -1,6 +1,5 @@
 <?php
-// NO output antes de esta línea
-ob_start(); // Capturar cualquier output accidental
+ob_start();
 
 require_once __DIR__ . '/../../private/database/config.php';
 require_once __DIR__ . '/../../private/helpers/session.php';
@@ -8,12 +7,10 @@ require_once __DIR__ . '/../../private/helpers/sanitizar.php';
 require_once __DIR__ . '/../../private/helpers/utils.php';
 require_once __DIR__ . '/../../private/models/Tratamiento.php';
 
-ob_end_clean(); // Limpiar buffer
+ob_end_clean();
 
-// Headers después de limpiar
 header('Content-Type: application/json; charset=utf-8');
 
-// Proteger API
 if (!estaAutenticado()) {
     http_response_code(401);
     echo json_encode(['success' => false, 'mensaje' => 'No autenticado'], JSON_UNESCAPED_UNICODE);
@@ -42,13 +39,22 @@ try {
         case 'eliminar':
             eliminar();
             break;
+        case 'subir_foto':
+            subirFoto();
+            break;
+        case 'eliminar_foto':
+            eliminarFoto();
+            break;
+        case 'reordenar_fotos':
+            reordenarFotos();
+            break;
         default:
             responderJSON(false, null, 'Acción no válida');
     }
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'mensaje' => 'Error del servidor',
         'error' => $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
@@ -81,6 +87,7 @@ function obtener() {
 function crear() {
     $datos = [
         'nombre' => limpiarString($_POST['nombre'] ?? ''),
+        'subtitulo' => limpiarString($_POST['subtitulo'] ?? ''),
         'descripcion' => limpiarString($_POST['descripcion'] ?? ''),
         'duracion' => limpiarInt($_POST['duracion'] ?? 0),
         'precio' => limpiarFloat($_POST['precio'] ?? 0),
@@ -119,6 +126,7 @@ function actualizar() {
     
     $datos = [
         'nombre' => limpiarString($_POST['nombre'] ?? ''),
+        'subtitulo' => limpiarString($_POST['subtitulo'] ?? ''),
         'descripcion' => limpiarString($_POST['descripcion'] ?? ''),
         'duracion' => limpiarInt($_POST['duracion'] ?? 0),
         'precio' => limpiarFloat($_POST['precio'] ?? 0),
@@ -127,6 +135,10 @@ function actualizar() {
     
     if (empty($datos['nombre'])) {
         responderJSON(false, null, 'El nombre es requerido');
+    }
+    
+    if ($datos['duracion'] <= 0) {
+        responderJSON(false, null, 'La duración debe ser mayor a 0');
     }
     
     $modelo = new Tratamiento();
@@ -176,3 +188,95 @@ function eliminar() {
     
     responderJSON($resultado['success'], null, $resultado['mensaje']);
 }
+
+
+function subirFoto() {
+    $tratamiento_id = limpiarInt($_POST['tratamiento_id'] ?? 0);
+    
+    if (!$tratamiento_id) {
+        responderJSON(false, null, 'ID de tratamiento no válido');
+    }
+    
+    if (!isset($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK) {
+        responderJSON(false, null, 'Error al subir archivo');
+    }
+    
+    $foto = $_FILES['foto'];
+    
+    // Validar tipo
+    $tiposPermitidos = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $foto['tmp_name']);
+    finfo_close($finfo);
+    
+    if (!in_array($mime, $tiposPermitidos)) {
+        responderJSON(false, null, 'Solo se permiten imágenes JPG, PNG o WEBP');
+    }
+    
+    // Validar tamaño (2MB)
+    if ($foto['size'] > 2 * 1024 * 1024) {
+        responderJSON(false, null, 'La imagen no debe superar 2MB');
+    }
+    
+    // Generar nombre único
+    $extension = pathinfo($foto['name'], PATHINFO_EXTENSION);
+    $nombreArchivo = 'tratamiento_' . $tratamiento_id . '_' . time() . '_' . uniqid() . '.' . $extension;
+    $rutaDestino = __DIR__ . '/../../storage/tratamientos/' . $nombreArchivo;
+    
+    // Mover archivo
+    if (!move_uploaded_file($foto['tmp_name'], $rutaDestino)) {
+        responderJSON(false, null, 'Error al guardar imagen');
+    }
+    
+    // Guardar en BD
+    $modelo = new Tratamiento();
+    $resultado = $modelo->agregarFoto($tratamiento_id, $nombreArchivo);
+    
+    if ($resultado['success']) {
+        registrarLog("Foto agregada al tratamiento ID: {$tratamiento_id}");
+        responderJSON(true, [
+            'foto_id' => $resultado['id'],
+            'ruta' => $nombreArchivo
+        ], 'Foto subida exitosamente');
+    } else {
+        @unlink($rutaDestino);
+        responderJSON(false, null, $resultado['mensaje']);
+    }
+}
+function eliminarFoto() {
+    $foto_id = limpiarInt($_POST['foto_id'] ?? 0);
+    
+    if (!$foto_id) {
+        responderJSON(false, null, 'ID de foto no válido');
+    }
+    
+    $modelo = new Tratamiento();
+    $resultado = $modelo->eliminarFoto($foto_id);
+    
+    if ($resultado) {
+        registrarLog("Foto eliminada (ID: {$foto_id})");
+        responderJSON(true, null, 'Foto eliminada');
+    } else {
+        responderJSON(false, null, 'Error al eliminar foto');
+    }
+}
+
+function reordenarFotos() {
+    $tratamiento_id = limpiarInt($_POST['tratamiento_id'] ?? 0);
+    $orden = json_decode($_POST['orden'] ?? '[]', true);
+    
+    if (!$tratamiento_id || !is_array($orden)) {
+        responderJSON(false, null, 'Datos no válidos');
+    }
+    
+    $modelo = new Tratamiento();
+    $resultado = $modelo->reordenarFotos($tratamiento_id, $orden);
+    
+    if ($resultado) {
+        registrarLog("Fotos reordenadas (Tratamiento ID: {$tratamiento_id})");
+        responderJSON(true, null, 'Fotos reordenadas');
+    } else {
+        responderJSON(false, null, 'Error al reordenar');
+    }
+}
+

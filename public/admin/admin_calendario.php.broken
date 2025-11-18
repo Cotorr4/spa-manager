@@ -1,0 +1,465 @@
+<?php
+require_once __DIR__ . '/../../private/database/config.php';
+require_once __DIR__ . '/../../private/helpers/session.php';
+require_once __DIR__ . '/../../private/helpers/utils.php';
+
+requerirAuth();
+$usuario = usuarioActual();
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario - Spa Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #f5f5f5; }
+        .layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: #2d2d2d; border-right: 1px solid #404040; padding: 20px 0; position: relative; }
+        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid #404040; }
+        .sidebar-header h1 { font-size: 18px; font-weight: 500; }
+        .sidebar-header .user-info { margin-top: 8px; font-size: 13px; color: #a0a0a0; }
+        .nav-menu { list-style: none; padding: 20px 0; }
+        .nav-menu li a { display: block; padding: 10px 20px; color: #a0a0a0; text-decoration: none; font-size: 14px; transition: all 0.2s; }
+        .nav-menu li a:hover { background: #404040; color: #f5f5f5; }
+        .nav-menu li a.active { background: #2563eb; color: white; }
+        .sidebar-footer { position: absolute; bottom: 20px; left: 20px; right: 20px; }
+        .logout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #404040; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .logout-btn:hover { border-color: #ef4444; color: #ef4444; }
+        .main-content { flex: 1; padding: 30px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .top-bar h2 { font-size: 24px; font-weight: 500; }
+        .top-bar-actions { display: flex; gap: 10px; align-items: center; }
+        .view-toggle { display: flex; gap: 5px; background: #2d2d2d; border: 1px solid #404040; border-radius: 4px; padding: 4px; }
+        .view-btn { padding: 8px 16px; background: transparent; border: none; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .view-btn.active { background: #2563eb; color: white; }
+        .nav-calendar { display: flex; align-items: center; gap: 10px; }
+        .nav-calendar button { padding: 8px 12px; background: #2d2d2d; border: 1px solid #404040; border-radius: 4px; color: #f5f5f5; cursor: pointer; }
+        .nav-calendar .current-period { font-size: 16px; font-weight: 500; min-width: 200px; text-align: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-secondary { background: #6b7280; color: white; }
+        
+        /* VISTA SEMANAL */
+        .calendar-week { display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 1px; background: #404040; border: 1px solid #404040; }
+        .calendar-header { background: #2d2d2d; padding: 12px; text-align: center; font-size: 13px; font-weight: 500; }
+        .calendar-header.corner { background: #1a1a1a; }
+        .time-slot { background: #2d2d2d; padding: 8px; text-align: right; font-size: 12px; color: #a0a0a0; }
+        .day-cell { background: #2d2d2d; padding: 8px; min-height: 60px; cursor: pointer; position: relative; }
+        .day-cell:hover { background: #404040; }
+        .day-cell.closed { background: #1a1a1a; opacity: 0.5; }
+        .reservation-block { background: #2563eb; color: white; padding: 4px 6px; border-radius: 4px; font-size: 11px; margin-bottom: 4px; cursor: pointer; }
+        .reservation-block:hover { background: #1d4ed8; }
+        .reservation-block.completada { background: #10b981; }
+        .reservation-block.cancelada { background: #6b7280; }
+        
+        /* VISTA DIARIA */
+        .calendar-day { background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; padding: 20px; }
+        .day-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #404040; }
+        .day-slots { display: grid; grid-template-columns: 100px 1fr; gap: 10px; }
+        .slot-time { padding: 10px; text-align: right; color: #a0a0a0; font-size: 14px; }
+        .slot-content { padding: 10px; background: #1a1a1a; border: 1px solid #404040; border-radius: 4px; cursor: pointer; }
+        .slot-content:hover { background: #404040; }
+        .slot-content.occupied { background: #2563eb; color: white; }
+        .slot-content.closed { background: #6b7280; opacity: 0.3; cursor: not-allowed; }
+        
+        /* VISTA MENSUAL */
+        .calendar-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #404040; border: 1px solid #404040; }
+        .month-day { background: #2d2d2d; padding: 8px; min-height: 100px; cursor: pointer; }
+        .month-day:hover { background: #404040; }
+        .month-day.other-month { opacity: 0.3; }
+        .month-day.today { border: 2px solid #2563eb; }
+        .day-number { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .day-reservations { font-size: 11px; }
+        .day-reservations .count { background: #2563eb; color: white; padding: 2px 6px; border-radius: 4px; display: inline-block; }
+        
+        .loading { text-align: center; padding: 40px; color: #a0a0a0; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-content { background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; padding: 30px; max-width: 500px; width: 90%; }
+        .modal-header { font-size: 20px; font-weight: 500; margin-bottom: 20px; }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; color: #a0a0a0; margin-bottom: 6px; }
+        input, select { width: 100%; padding: 10px 12px; background: #1a1a1a; border: 1px solid #404040; border-radius: 4px; color: #f5f5f5; font-size: 14px; }
+        input:focus, select:focus { outline: none; border-color: #2563eb; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>Spa Manager</h1>
+                <div class="user-info"><?php echo htmlspecialchars($usuario['nombre']); ?></div>
+            </div>
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.php">Dashboard</a></li>
+                    <li><a href="admin_tratamientos.php">Tratamientos</a></li>
+                    <li><a href="admin_clientes.php">Clientes</a></li>
+                    <li><a href="admin_reservas.php">Reservas</a></li>
+                    <li><a href="admin_fichas.php">Fichas de Salud</a></li>
+                    <li><a href="admin_calendario.php" class="active">Calendario</a></li>
+                    <li><a href="admin_ubicaciones.php">Ubicaciones</a></li>
+                    <li><a href="admin_config.php">Configuración</a></li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <div class="top-bar">
+                <h2>Calendario</h2>
+                <div class="top-bar-actions">
+                    <div class="view-toggle">
+                        <button class="view-btn active" onclick="cambiarVista('semana')">Semana</button>
+                        <button class="view-btn" onclick="cambiarVista('dia')">Día</button>
+                        <button class="view-btn" onclick="cambiarVista('mes')">Mes</button>
+                    </div>
+                    <button class="btn btn-primary" onclick="abrirModalConfig()">Configurar Horarios</button>
+                </div>
+            </div>
+            
+            <div class="nav-calendar">
+                <button onclick="navegar('anterior')">←</button>
+                <div class="current-period" id="currentPeriod"></div>
+                <button onclick="navegar('siguiente')">→</button>
+                <button onclick="irHoy()">Hoy</button>
+            </div>
+            
+            <div id="calendarContainer" style="margin-top: 20px;">
+                <div class="loading">Cargando calendario...</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL CONFIG HORARIOS -->
+
+    <!-- MODAL CONFIG HORARIOS -->
+    <div id="modalConfig" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Configurar Horarios</div>
+            <form id="formConfig">
+                <div class="form-group">
+                    <label for="configFechaInicio">Fecha Inicio</label>
+                    <input type="date" id="configFechaInicio" required>
+                </div>
+                <div class="form-group">
+                    <label for="configFechaFin">Fecha Fin</label>
+                    <input type="date" id="configFechaFin" required>
+                </div>
+                <div class="form-group">
+                    <label for="configUbicacion">Ubicación</label>
+                    <select id="configUbicacion" required>
+                        <option value="1">Sede Principal Pucallpa</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Generar Horarios</button>
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalConfig()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script>
+        let vistaActual = 'semana';
+        let fechaActual = new Date();
+        const API_URL = '../api/calendario.php';
+        
+        cargarCalendario();
+        
+        function cambiarVista(vista) {
+            vistaActual = vista;
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            cargarCalendario();
+        }
+        
+        function navegar(direccion) {
+            if (vistaActual === 'semana') {
+                fechaActual.setDate(fechaActual.getDate() + (direccion === 'siguiente' ? 7 : -7));
+            } else if (vistaActual === 'dia') {
+                fechaActual.setDate(fechaActual.getDate() + (direccion === 'siguiente' ? 1 : -1));
+            } else if (vistaActual === 'mes') {
+                fechaActual.setMonth(fechaActual.getMonth() + (direccion === 'siguiente' ? 1 : -1));
+            }
+            cargarCalendario();
+        }
+        
+        function irHoy() {
+            fechaActual = new Date();
+            cargarCalendario();
+        }
+        
+        async function cargarCalendario() {
+            try {
+                let url = API_URL;
+                let params = new URLSearchParams();
+                
+                if (vistaActual === 'semana') {
+                    params.append('action', 'obtener_semana');
+                    params.append('fecha', fechaActual.toISOString().split('T')[0]);
+                } else if (vistaActual === 'dia') {
+                    params.append('action', 'obtener_dia');
+                    params.append('fecha', fechaActual.toISOString().split('T')[0]);
+                    params.append('ubicacion_id', '1');
+                } else if (vistaActual === 'mes') {
+                    params.append('action', 'obtener_mes');
+                    params.append('anio', fechaActual.getFullYear());
+                    params.append('mes', fechaActual.getMonth() + 1);
+                }
+                
+                const res = await fetch(url + '?' + params.toString());
+                const data = await res.json();
+                
+                if (data.success) {
+                    if (vistaActual === 'semana') renderSemana(data.data);
+                    else if (vistaActual === 'dia') renderDia(data.data);
+                    else if (vistaActual === 'mes') renderMes(data.data);
+                } else {
+                    throw new Error(data.mensaje || 'Error al cargar');
+                }
+            } catch (err) {
+                console.error('Error:', err);
+                document.getElementById('calendarContainer').innerHTML = '<div class="loading">Error: ' + err.message + '</div>';
+            }
+        }
+        
+        function renderSemana(data) {
+            const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            document.getElementById('currentPeriod').textContent = formatearRango(data.inicio_semana, data.fin_semana);
+            
+            let html = '<div class="calendar-week">';
+            html += '<div class="calendar-header corner"></div>';
+            
+            const inicio = new Date(data.inicio_semana);
+            for (let i = 0; i < 7; i++) {
+                const dia = new Date(inicio);
+                dia.setDate(inicio.getDate() + i);
+                html += '<div class="calendar-header">' + dias[i] + '<br><small>' + dia.getDate() + '/' + (dia.getMonth()+1) + '</small></div>';
+            }
+            
+            for (let hora = 8; hora <= 18; hora++) {
+                for (let min = 0; min < 60; min += 30) {
+                    if (hora === 18 && min > 0) break;
+                    const horaStr = String(hora).padStart(2,'0') + ':' + String(min).padStart(2,'0');
+                    html += '<div class="time-slot">' + horaStr + '</div>';
+                    
+                    for (let i = 0; i < 7; i++) {
+                        const dia = new Date(inicio);
+                        dia.setDate(inicio.getDate() + i);
+                        const fechaStr = dia.toISOString().split('T')[0];
+                        
+                        const reservasEnSlot = data.reservas.filter(r => 
+                            r.fecha === fechaStr && r.hora.startsWith(horaStr)
+                        );
+                        
+                        let cellClass = 'day-cell';
+                        let cellContent = '';
+                        
+                        if (reservasEnSlot.length > 0) {
+                            reservasEnSlot.forEach(r => {
+                                cellContent += '<div class="reservation-block ' + r.estado + '" onclick="verReserva(' + r.id + ')">' + r.cliente_nombre + '</div>';
+                            });
+                        }
+                        
+                        html += '<div class="' + cellClass + '">' + cellContent + '</div>';
+                    }
+                }
+            }
+            
+            html += '</div>';
+            document.getElementById('calendarContainer').innerHTML = html;
+        }
+        
+        
+        function renderMes(data) {
+            const nombreMes = new Date(data.anio, data.mes - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+            document.getElementById('currentPeriod').textContent = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+            
+            const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            let html = '<div class="calendar-month">';
+            
+            dias.forEach(dia => {
+                html += '<div class="calendar-header">' + dia + '</div>';
+            });
+            
+            const primerDia = new Date(data.anio, data.mes - 1, 1);
+            const ultimoDia = new Date(data.anio, data.mes, 0);
+            const primerDiaSemana = primerDia.getDay() === 0 ? 7 : primerDia.getDay();
+            
+            for (let i = 1; i < primerDiaSemana; i++) {
+                html += '<div class="month-day other-month"></div>';
+            }
+            
+            for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+                const fecha = new Date(data.anio, data.mes - 1, dia);
+                const fechaStr = fecha.toISOString().split('T')[0];
+                const reservasDelDia = data.reservas.filter(r => r.fecha === fechaStr);
+                
+                const hoy = new Date().toISOString().split('T')[0];
+                let dayClass = 'month-day';
+                if (fechaStr === hoy) dayClass += ' today';
+                
+                html += '<div class="' + dayClass + '" onclick="verDia(\'' + fechaStr + '\')">';
+                html += '<div class="day-number">' + dia + '</div>';
+                if (reservasDelDia.length > 0) {
+                    html += '<div class="day-reservations"><span class="count">' + reservasDelDia.length + '</span> reservas</div>';
+                }
+                html += '</div>';
+            }
+            
+            html += '</div>';
+            document.getElementById('calendarContainer').innerHTML = html;
+        }
+        
+        function verDia(fecha) {
+            fechaActual = new Date(fecha);
+            vistaActual = 'dia';
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-btn')[1].classList.add('active');
+            cargarCalendario();
+        }
+        
+        function verReserva(id) {
+            window.location.href = 'admin_reservas.php?id=' + id;
+        }
+        
+        function abrirModalConfig() {
+            document.getElementById('modalConfig').classList.add('show');
+        }
+        
+        function cerrarModalConfig() {
+            document.getElementById('modalConfig').classList.remove('show');
+        }
+        
+        document.getElementById('formConfig').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('action', 'generar_default');
+            formData.append('fecha_inicio', document.getElementById('configFechaInicio').value);
+            formData.append('fecha_fin', document.getElementById('configFechaFin').value);
+            formData.append('ubicacion_id', document.getElementById('configUbicacion').value);
+            
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    cerrarModalConfig();
+                    cargarCalendario();
+                    alert('Horarios generados exitosamente');
+                } else {
+                    alert(data.mensaje || 'Error al generar horarios');
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            }
+        });
+        
+        function formatearFecha(fecha) {
+            const d = new Date(fecha + 'T00:00:00');
+            return d.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        
+        function formatearRango(inicio, fin) {
+            const d1 = new Date(inicio + 'T00:00:00');
+            const d2 = new Date(fin + 'T00:00:00');
+            return d1.getDate() + '/' + (d1.getMonth()+1) + ' - ' + d2.getDate() + '/' + (d2.getMonth()+1) + '/' + d2.getFullYear();
+        }
+        
+
+        function renderDia(data) {
+            document.getElementById("currentPeriod").textContent = formatearFecha(data.fecha);
+            
+            let html = "<div class=\"calendar-day\">";
+            html += "<div class=\"day-header\"><h3>" + formatearFecha(data.fecha) + "</h3></div>";
+            html += "<div style=\"margin-bottom: 20px;\"><label>Ubicación: <select id=\"ubicacionDia\" onchange=\"cambiarUbicacionDia()\">";
+            html += "<option value=\"1\">Sede Principal Pucallpa</option>";
+            html += "<option value=\"2\">Sede Secundaria Pucallpa</option>";
+            html += "<option value=\"3\">Sede Antofagasta</option>";
+            html += "<option value=\"4\">Atención a Domicilio</option>";
+            html += "</select></label></div>";
+            
+            html += "<div class=\"day-slots\">";
+            
+            let ubicacionActual = parseInt(document.getElementById("ubicacionDia")?.value || 1);
+            
+            for (let hora = 8; hora < 18; hora++) {
+                for (let min = 0; min < 60; min += 30) {
+                    const horaStr = String(hora).padStart(2,"0") + ":" + String(min).padStart(2,"0");
+                    const reserva = data.reservas.find(r => r.hora.startsWith(horaStr) && r.ubicacion_id == ubicacionActual);
+                    const slotConfig = data.disponibilidad.find(d => {
+                        const hi = d.hora_inicio.substring(0,5);
+                        const hf = d.hora_fin.substring(0,5);
+                        return horaStr >= hi && horaStr < hf && d.ubicacion_id == ubicacionActual;
+                    });
+                    
+                    let slotClass = "slot-content";
+                    let slotContent = "";
+                    let isDisponible = !!slotConfig;
+                    
+                    if (reserva && reserva.estado !== "cancelada") {
+                        slotClass += " occupied";
+                        slotContent = "<strong>" + reserva.cliente_nombre + "</strong><br>" + reserva.tratamiento_nombre;
+                    } else if (isDisponible) {
+                        slotContent = "<button class=\"btn btn-secondary\" style=\"font-size: 12px;\" onclick=\"toggleSlot( + data.fecha + ,  + horaStr + , false)\">Deshabilitar</button>";
+                    } else {
+                        slotClass += " closed";
+                        slotContent = "<button class=\"btn btn-primary\" style=\"font-size: 12px;\" onclick=\"toggleSlot( + data.fecha + ,  + horaStr + , true)\">Habilitar</button>";
+                    }
+                    
+                    html += "<div class=\"slot-time\">" + horaStr + "</div>";
+                    html += "<div class=\""+ slotClass + "\">" + slotContent + "</div>";
+                }
+            }
+            
+            html += "</div></div>";
+            document.getElementById("calendarContainer").innerHTML = html;
+        }
+        
+        async function toggleSlot(fecha, hora, habilitar) {
+            const ubicacionId = document.getElementById("ubicacionDia")?.value || 1;
+            
+            const formData = new FormData();
+            formData.append("action", "actualizar_slot");
+            formData.append("fecha", fecha);
+            formData.append("hora", hora);
+            formData.append("ubicacion_id", ubicacionId);
+            if (habilitar) formData.append("disponible", "1");
+            
+            try {
+                const res = await fetch(API_URL, { method: "POST", body: formData });
+                const data = await res.json();
+                
+                if (data.success) {
+                    cargarCalendario();
+                } else {
+                    alert(data.mensaje || "Error al actualizar");
+                }
+            } catch (err) {
+                alert("Error de conexión");
+            }
+        }
+        
+        function cambiarUbicacionDia() {
+            cargarCalendario();
+        }
+
+        function cerrarSesion() {
+            if (confirm('¿Seguro que deseas cerrar sesión?')) {
+                fetch('../api/auth.php?action=logout', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) window.location.href = 'login.php';
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
