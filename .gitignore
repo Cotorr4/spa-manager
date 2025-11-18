@@ -2,8 +2,8 @@
 storage/logs/*.log
 
 # Uploads
-public/uploads/controles/*!
-public/uploads/controles/.gitkeep
+public/uploads/controles/*
+!public/uploads/controles/.gitkeep
 
 # Config local
 private/database/config.php
