@@ -196,13 +196,6 @@ $perfilActivo = $db->query("SELECT nombre, estado_operativo FROM perfiles_ubicac
                 </div>
             </div>
             
-            <!-- Visitas del Sitio -->
-            <div class="card" style="margin-bottom: 30px;">
-                <div class="card-header">Visitas al Sitio Web (Últimos 30 Días)</div>
-                <div style="height: 300px; position: relative;">
-                    <canvas id="graficoVisitas"></canvas>
-                </div>
-            </div>
             <div class="content-grid">
                 <!-- Próximas reservas -->
                 <div class="card">
