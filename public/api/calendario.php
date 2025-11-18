@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../private/models/Reserva.php';
 ob_end_clean();
 
 header('Content-Type: application/json; charset=utf-8');
+mb_internal_encoding('UTF-8');
 
 if (!estaAutenticado()) {
     http_response_code(401);

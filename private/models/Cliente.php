@@ -12,7 +12,7 @@ class Cliente {
     // Listar todos los clientes
     public function listar($orden = 'nombre', $busqueda = '') {
         try {
-            $sql = "SELECT id, cliente_uid, nombre, telefono, email, direccion, notas, created_at 
+            $sql = "SELECT id, cliente_uid, cliente_codigo, nombre, telefono, fecha_nacimiento, email, direccion, notas, activo, created_at 
                     FROM clientes";
             
             $params = [];
@@ -39,7 +39,7 @@ class Cliente {
     public function obtenerPorId($id) {
         try {
             $stmt = $this->db->prepare("
-                SELECT id, cliente_uid, nombre, telefono, email, direccion, notas, created_at 
+                SELECT id, cliente_uid, cliente_codigo, nombre, telefono, fecha_nacimiento, email, direccion, notas, activo, created_at 
                 FROM clientes 
                 WHERE id = ?
             ");
@@ -55,7 +55,7 @@ class Cliente {
     public function obtenerPorTelefono($telefono) {
         try {
             $stmt = $this->db->prepare("
-                SELECT id, cliente_uid, nombre, telefono, email, direccion, notas, created_at 
+                SELECT id, cliente_uid, cliente_codigo, nombre, telefono, fecha_nacimiento, email, direccion, notas, activo, created_at 
                 FROM clientes 
                 WHERE telefono = ?
             ");
@@ -71,7 +71,7 @@ class Cliente {
     public function obtenerPorUID($uid) {
         try {
             $stmt = $this->db->prepare("
-                SELECT id, cliente_uid, nombre, telefono, email, direccion, notas, created_at 
+                SELECT id, cliente_uid, cliente_codigo, nombre, telefono, fecha_nacimiento, email, direccion, notas, activo, created_at 
                 FROM clientes 
                 WHERE cliente_uid = ?
             ");
@@ -111,6 +111,13 @@ class Cliente {
             ]);
             
             $id = $this->db->lastInsertId();
+            // Generar código simple
+            $stmtCount = $this->db->query("SELECT COALESCE(MAX(CAST(SUBSTRING(cliente_codigo, 2) AS UNSIGNED)), 0) + 1 as next FROM clientes");
+            $nextNum = $stmtCount->fetch()['next'];
+            $codigo = 'C' . str_pad($nextNum, 3, '0', STR_PAD_LEFT);
+            
+            $stmtCodigo = $this->db->prepare("UPDATE clientes SET cliente_codigo = ? WHERE id = ?");
+            $stmtCodigo->execute([$codigo, $id]);
             return ['success' => true, 'id' => $id, 'uid' => $uid];
             
         } catch (PDOException $e) {

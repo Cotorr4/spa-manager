@@ -13,6 +13,7 @@ ob_end_clean();
 
 // Headers JSON
 header('Content-Type: application/json; charset=utf-8');
+mb_internal_encoding('UTF-8');
 
 // Proteger API
 if (!estaAutenticado()) {

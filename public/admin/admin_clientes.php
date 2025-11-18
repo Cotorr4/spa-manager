@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/../../private/database/config.php';
 require_once __DIR__ . '/../../private/helpers/session.php';
+ini_set('default_charset', 'UTF-8');
+header('Content-Type: text/html; charset=UTF-8');
 require_once __DIR__ . '/../../private/helpers/utils.php';
 
 requerirAuth();
