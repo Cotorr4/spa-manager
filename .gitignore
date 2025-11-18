@@ -1,0 +1,13 @@
+# Logs
+storage/logs/*.log
+
+# Uploads
+public/uploads/controles/*!
+public/uploads/controles/.gitkeep
+
+# Config local
+private/database/config.php
+
+# System files
+.DS_Store
+Thumbs.db
