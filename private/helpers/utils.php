@@ -8,7 +8,14 @@ function generarClienteUID() {
 
 // Respuesta JSON estandarizada
 function responderJSON($success, $data = null, $mensaje = '') {
-    header('Content-Type: application/json; charset=utf-8');
+    // Limpiar cualquier output previo
+    if (ob_get_length()) ob_clean();
+    
+    // Asegurar header JSON
+    if (!headers_sent()) {
+        header('Content-Type: application/json; charset=utf-8');
+    }
+    
     echo json_encode([
         'success' => $success,
         'data' => $data,
@@ -42,9 +49,16 @@ function fechaAMySQL($fecha) {
 // Registrar en log
 function registrarLog($mensaje, $tipo = 'INFO') {
     $log_file = __DIR__ . '/../../storage/logs/app.log';
+    $log_dir = dirname($log_file);
+    
+    // Crear directorio si no existe
+    if (!is_dir($log_dir)) {
+        mkdir($log_dir, 0755, true);
+    }
+    
     $timestamp = date('Y-m-d H:i:s');
     $linea = "[{$timestamp}] [{$tipo}] {$mensaje}\n";
-    file_put_contents($log_file, $linea, FILE_APPEND);
+    @file_put_contents($log_file, $linea, FILE_APPEND);
 }
 
 // Calcular edad desde fecha de nacimiento
