@@ -1,0 +1,65 @@
+<?php
+// Generar ID único para clientes (formato: CLI-YYYYMMDD-XXXX)
+function generarClienteUID() {
+    $fecha = date('Ymd');
+    $random = str_pad(rand(0, 9999), 4, '0', STR_PAD_LEFT);
+    return "CLI-{$fecha}-{$random}";
+}
+
+// Respuesta JSON estandarizada
+function responderJSON($success, $data = null, $mensaje = '') {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => $success,
+        'data' => $data,
+        'mensaje' => $mensaje
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// Formatear fecha para mostrar (de Y-m-d a d/m/Y)
+function formatearFecha($fecha) {
+    if (!$fecha) return '';
+    $d = DateTime::createFromFormat('Y-m-d', $fecha);
+    return $d ? $d->format('d/m/Y') : $fecha;
+}
+
+// Formatear hora (de H:i:s a H:i)
+function formatearHora($hora) {
+    if (!$hora) return '';
+    $h = DateTime::createFromFormat('H:i:s', $hora);
+    if (!$h) $h = DateTime::createFromFormat('H:i', $hora);
+    return $h ? $h->format('H:i') : $hora;
+}
+
+// Convertir fecha de d/m/Y a Y-m-d
+function fechaAMySQL($fecha) {
+    if (!$fecha) return null;
+    $d = DateTime::createFromFormat('d/m/Y', $fecha);
+    return $d ? $d->format('Y-m-d') : null;
+}
+
+// Registrar en log
+function registrarLog($mensaje, $tipo = 'INFO') {
+    $log_file = __DIR__ . '/../../storage/logs/app.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $linea = "[{$timestamp}] [{$tipo}] {$mensaje}\n";
+    file_put_contents($log_file, $linea, FILE_APPEND);
+}
+
+// Calcular edad desde fecha de nacimiento
+function calcularEdad($fecha_nacimiento) {
+    if (!$fecha_nacimiento) return null;
+    $hoy = new DateTime();
+    $nacimiento = DateTime::createFromFormat('Y-m-d', $fecha_nacimiento);
+    if (!$nacimiento) return null;
+    return $hoy->diff($nacimiento)->y;
+}
+
+// Generar slug para URLs (útil para blog)
+function generarSlug($texto) {
+    $texto = strtolower(trim($texto));
+    $texto = preg_replace('/[^a-z0-9-]/', '-', $texto);
+    $texto = preg_replace('/-+/', '-', $texto);
+    return trim($texto, '-');
+}
