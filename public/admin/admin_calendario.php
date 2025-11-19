@@ -18,7 +18,7 @@ $usuario = usuarioActual();
         .layout { display: flex; min-height: 100vh; }
         .sidebar { width: 250px; background: #2d2d2d; border-right: 1px solid #404040; padding: 20px 0; position: relative; }
         .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid #404040; }
-        .sidebar-header h1 { font-size: 18px; font-weight: 500; }
+        .sidebar { width: 250px; background: #2d2d2d; border-right: 1px solid #404040; padding: 20px 0; position: relative; }
         .sidebar-header .user-info { margin-top: 8px; font-size: 13px; color: #a0a0a0; }
         .nav-menu { list-style: none; padding: 20px 0; }
         .nav-menu li a { display: block; padding: 10px 20px; color: #a0a0a0; text-decoration: none; font-size: 14px; transition: all 0.2s; }
@@ -28,7 +28,7 @@ $usuario = usuarioActual();
         .logout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #404040; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .logout-btn:hover { border-color: #ef4444; color: #ef4444; }
         
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex: 1; padding: 30px;  }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .top-bar h2 { font-size: 24px; font-weight: 500; }
         .top-bar-actions { display: flex; gap: 10px; align-items: center; }

@@ -88,7 +88,7 @@ $perfilActivo = $db->query("SELECT nombre, estado_operativo FROM perfiles_ubicac
         .logout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #404040; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .logout-btn:hover { border-color: #ef4444; color: #ef4444; }
         
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex: 1; padding: 30px; }
         .top-bar { margin-bottom: 30px; }
         .top-bar h2 { font-size: 28px; font-weight: 500; margin-bottom: 8px; }
         .top-bar .subtitle { color: #a0a0a0; font-size: 14px; }

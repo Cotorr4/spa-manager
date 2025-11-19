@@ -27,7 +27,7 @@ $usuario = usuarioActual();
         .sidebar-footer { position: absolute; bottom: 20px; left: 20px; right: 20px; }
         .logout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #404040; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .logout-btn:hover { border-color: #ef4444; color: #ef4444; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .main-content { flex: 1; padding: 30px; }
         .top-bar { margin-bottom: 30px; }
         .top-bar h2 { font-size: 24px; font-weight: 500; }
         
