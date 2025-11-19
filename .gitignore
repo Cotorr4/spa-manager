@@ -11,3 +11,5 @@ private/database/config.php
 # System files
 .DS_Store
 Thumbs.db
+sistema-respaldos.tar.gz
+public/uploads/
