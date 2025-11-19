@@ -9,6 +9,50 @@ requerirAuth();
 $usuario = usuarioActual();
 ?>
 <!DOCTYPE html>
+
+    <!-- MODAL NUEVA ENTRADA BITÁCORA -->
+    <div id="modalNuevaEntrada" class="modal">
+        <div class="modal-content">
+            <div class="modal-header" id="tituloModalEntrada">Nueva Entrada en Bitácora</div>
+            <form id="formEntrada" onsubmit="event.preventDefault(); guardarEntrada();">
+                <input type="hidden" id="entradaId">
+                
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" id="entradaFecha" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Tratamiento *</label>
+                    <select id="entradaTratamiento" required>
+                        <option value="">Selecciona un tratamiento</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Observaciones</label>
+                    <textarea id="entradaNotas" rows="6" placeholder="Describe cómo fue la sesión, resultados observados, recomendaciones, etc."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Fotos (máximo 3)</label>
+                    <input type="file" id="fotoInput" accept="image/*" style="margin-bottom: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="subirFotoEntrada()" style="font-size: 13px;">
+                        📷 Subir Foto
+                    </button>
+                    <div id="fotosPreview" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
+                    <small style="color: #a0a0a0; display: block; margin-top: 8px;">
+                        💡 Guarda la entrada primero, luego podrás subir fotos
+                    </small>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">💾 Guardar</button>
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalNuevaEntrada()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -280,7 +324,7 @@ $usuario = usuarioActual();
             }
         }
         
-                let clienteActualBitacora = null;
+                        let clienteActualBitacora = null;
 
         async function verHistorial(clienteId) {
             clienteActualBitacora = clienteId;
@@ -306,14 +350,18 @@ $usuario = usuarioActual();
                             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                         });
                         html += `<div class="historial-item" style="padding: 16px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                 <div>
                                     <div class="fecha">📅 ${fechaFormato}</div>
-                                    <div class="tratamiento">${entrada.tratamiento_nombre}</div>
+                                    <div class="tratamiento" style="font-size: 16px; font-weight: 500; margin-top: 4px;">${entrada.tratamiento_nombre}</div>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn btn-success" onclick="editarEntrada(${entrada.id})" style="padding: 6px 12px; font-size: 13px;">✏️ Editar</button>
+                                    <button class="btn btn-danger" onclick="eliminarEntrada(${entrada.id})" style="padding: 6px 12px; font-size: 13px;">🗑️ Eliminar</button>
                                 </div>
                             </div>
-                            ${entrada.notas ? `<div style="background: #2d2d2d; padding: 12px; border-radius: 6px; margin-bottom: 8px;"><div style="font-size: 12px; color: #a0a0a0; margin-bottom: 6px;">Observaciones:</div><div style="white-space: pre-wrap; font-size: 14px;">${entrada.notas}</div></div>` : '<div style="color: #6b7280; font-size: 13px; font-style: italic;">Sin observaciones</div>'}
-                            ${fotos.length > 0 ? `<div style="color: #10b981; font-size: 13px;">📷 ${fotos.length} foto(s)</div>` : '<div style="color: #6b7280; font-size: 13px;">📷 Sin fotos</div>'}
+                            ${entrada.notas ? `<div style="background: #2d2d2d; padding: 12px; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #2563eb;"><div style="font-size: 12px; color: #a0a0a0; margin-bottom: 6px;">Observaciones:</div><div style="white-space: pre-wrap; font-size: 14px; line-height: 1.6;">${entrada.notas}</div></div>` : '<div style="color: #6b7280; font-size: 13px; font-style: italic;">Sin observaciones</div>'}
+                            ${fotos.length > 0 ? `<div style="margin-top: 12px;"><div style="font-size: 12px; color: #a0a0a0; margin-bottom: 8px;">Fotos (${fotos.length}):</div><div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px;">${fotos.map(foto => `<div style="position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 2px solid #404040; cursor: pointer;" onclick="verFotoAmpliada('${foto}')"><img src="../${foto}" style="width: 100%; height: 100%; object-fit: cover;"></div>`).join('')}</div></div>` : '<div style="color: #6b7280; font-size: 13px; font-style: italic; margin-top: 8px;">📷 Sin fotos</div>'}
                         </div>`;
                     });
                 } else {
@@ -333,8 +381,166 @@ $usuario = usuarioActual();
         }
 
         function abrirModalNuevaEntrada() {
-            alert('Funcionalidad en desarrollo - Próximamente podrás agregar entradas');
+            document.getElementById('tituloModalEntrada').textContent = 'Nueva Entrada en Bitácora';
+            document.getElementById('entradaId').value = '';
+            document.getElementById('entradaFecha').value = new Date().toISOString().split('T')[0];
+            document.getElementById('entradaNotas').value = '';
+            document.getElementById('fotosPreview').innerHTML = '';
+            cargarTratamientosSelect();
+            document.getElementById('modalNuevaEntrada').classList.add('show');
         }
+
+        function cerrarModalNuevaEntrada() {
+            document.getElementById('modalNuevaEntrada').classList.remove('show');
+        }
+
+        async function cargarTratamientosSelect() {
+            try {
+                const res = await fetch('../api/tratamientos.php?action=listar', { credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    const select = document.getElementById('entradaTratamiento');
+                    select.innerHTML = '<option value="">Selecciona un tratamiento</option>';
+                    data.data.forEach(t => {
+                        if (t.activo == 1) {
+                            select.innerHTML += `<option value="${t.id}">${t.nombre}</option>`;
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Error cargando tratamientos:', err);
+            }
+        }
+
+        async function guardarEntrada() {
+            const id = document.getElementById('entradaId').value;
+            const formData = new FormData();
+            formData.append('action', id ? 'actualizar' : 'crear');
+            if (id) formData.append('id', id);
+            formData.append('cliente_id', clienteActualBitacora);
+            formData.append('tratamiento_id', document.getElementById('entradaTratamiento').value);
+            formData.append('fecha', document.getElementById('entradaFecha').value);
+            formData.append('notas', document.getElementById('entradaNotas').value);
+            if (!formData.get('tratamiento_id')) {
+                alert('Por favor selecciona un tratamiento');
+                return;
+            }
+            try {
+                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    cerrarModalNuevaEntrada();
+                    verHistorial(clienteActualBitacora);
+                } else {
+                    alert(data.mensaje || 'Error al guardar');
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            }
+        }
+
+        async function editarEntrada(id) {
+            try {
+                const res = await fetch(`../api/bitacora.php?action=obtener&id=${id}`, { credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    const entrada = data.data;
+                    document.getElementById('tituloModalEntrada').textContent = 'Editar Entrada';
+                    document.getElementById('entradaId').value = entrada.id;
+                    document.getElementById('entradaFecha').value = entrada.fecha;
+                    document.getElementById('entradaNotas').value = entrada.notas || '';
+                    await cargarTratamientosSelect();
+                    document.getElementById('entradaTratamiento').value = entrada.tratamiento_id;
+                    const fotos = JSON.parse(entrada.fotos || '[]');
+                    let fotosHTML = '';
+                    fotos.forEach(foto => {
+                        fotosHTML += `<div style="position: relative; width: 100px; height: 100px;"><img src="../${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"><button onclick="eliminarFotoEntrada(${entrada.id}, '${foto}')" style="position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-weight: bold;">×</button></div>`;
+                    });
+                    document.getElementById('fotosPreview').innerHTML = fotosHTML;
+                    document.getElementById('modalNuevaEntrada').classList.add('show');
+                }
+            } catch (err) {
+                alert('Error al cargar entrada');
+            }
+        }
+
+        async function eliminarEntrada(id) {
+            if (!confirm('¿Eliminar esta entrada de la bitácora? Esta acción no se puede deshacer.')) return;
+            const formData = new FormData();
+            formData.append('action', 'eliminar');
+            formData.append('id', id);
+            try {
+                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    verHistorial(clienteActualBitacora);
+                } else {
+                    alert(data.mensaje || 'Error al eliminar');
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            }
+        }
+
+        async function subirFotoEntrada() {
+            const id = document.getElementById('entradaId').value;
+            if (!id) {
+                alert('Primero guarda la entrada antes de subir fotos');
+                return;
+            }
+            const input = document.getElementById('fotoInput');
+            if (!input.files || input.files.length === 0) {
+                alert('Selecciona una foto');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('action', 'subir_foto');
+            formData.append('id', id);
+            formData.append('foto', input.files[0]);
+            try {
+                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    editarEntrada(id);
+                } else {
+                    alert(data.mensaje || 'Error al subir foto');
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            }
+        }
+
+        async function eliminarFotoEntrada(id, rutaFoto) {
+            if (!confirm('¿Eliminar esta foto?')) return;
+            const formData = new FormData();
+            formData.append('action', 'eliminar_foto');
+            formData.append('id', id);
+            formData.append('ruta_foto', rutaFoto);
+            try {
+                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    editarEntrada(id);
+                } else {
+                    alert(data.mensaje || 'Error al eliminar foto');
+                }
+            } catch (err) {
+                alert('Error de conexión');
+            }
+        }
+
+        function verFotoAmpliada(ruta) {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; cursor: pointer;';
+            modal.onclick = () => modal.remove();
+            const img = document.createElement('img');
+            img.src = '../' + ruta;
+            img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 8px; box-shadow: 0 0 50px rgba(0,0,0,0.5);';
+            modal.appendChild(img);
+            document.body.appendChild(modal);
+        }
+
 
         
         document.getElementById('formCliente').addEventListener('submit', async (e) => {
