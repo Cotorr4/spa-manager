@@ -254,11 +254,11 @@ $usuario = usuarioActual();
                 return;
             }
             
-            let html = '<table><thead><tr><th>UID</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead><tbody>';
+            let html = '<table><thead><tr><th>Cliente</th><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr></thead><tbody>';
             clientes.forEach(c => {
                 html += `
                     <tr>
-                        <td><span class="uid-badge">${c.cliente_uid}</span></td>
+                        <td><span class="uid-badge">${c.cliente_codigo}</span></td>
                         <td><strong>${c.nombre}</strong></td>
                         <td>${c.telefono}</td>
                         <td>${c.email || '-'}</td>
