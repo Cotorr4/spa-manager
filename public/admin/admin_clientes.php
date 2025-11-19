@@ -19,25 +19,24 @@ $usuario = usuarioActual();
                 
                 <div class="form-group">
                     <label>Fecha *</label>
-                    <input type="date" id="entradaFecha" required>
+                    <input type="date" id="entradaFecha" name="fecha" required>
                 </div>
                 
                 <div class="form-group">
                     <label>Tratamiento *</label>
-                    <select id="entradaTratamiento" required>
+                    <select id="entradaTratamiento" name="tratamiento_id" required>
                         <option value="">Selecciona un tratamiento</option>
                     </select>
                 </div>
                 
                 <div class="form-group">
                     <label>Observaciones</label>
-                    <textarea id="entradaNotas" rows="6" placeholder="Describe cómo fue la sesión, resultados observados, recomendaciones, etc."></textarea>
+                    <textarea id="entradaNotas" name="notas" rows="6" placeholder="Describe cómo fue la sesión, resultados observados, recomendaciones, etc."></textarea>
                 </div>
                 
                 <div class="form-group">
                     <label>Fotos (máximo 3)</label>
-                    <input type="file" id="fotoInput" accept="image/*" style="margin-bottom: 10px;">
-                    <button type="button" class="btn btn-secondary" onclick="subirFotoEntrada()" style="font-size: 13px;">
+                    <input type="file" id="fotoInput" accept="image/*" onchange="subirFoto(event)" style="display:none;">
                         📷 Subir Foto
                     </button>
                     <div id="fotosPreview" style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;"></div>
@@ -93,6 +92,7 @@ $usuario = usuarioActual();
         tr:hover { background: #404040; }
         .uid-badge { display: inline-block; padding: 4px 8px; background: #1a1a1a; border: 1px solid #404040; border-radius: 4px; font-size: 12px; font-family: monospace; color: #a0a0a0; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        #modalNuevaEntrada { z-index: 1100; }
         .modal.show { display: flex; }
         .modal-content { background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; padding: 30px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
         .modal-content.large { max-width: 700px; }
@@ -413,31 +413,96 @@ $usuario = usuarioActual();
         }
 
         async function guardarEntrada() {
+            const btnSubmit = document.querySelector('#formEntrada button[type="submit"]');
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Guardando...';
+            
             const id = document.getElementById('entradaId').value;
-            const formData = new FormData();
+            const formData = new FormData(document.getElementById('formEntrada'));
             formData.append('action', id ? 'actualizar' : 'crear');
-            if (id) formData.append('id', id);
             formData.append('cliente_id', clienteActualBitacora);
-            formData.append('tratamiento_id', document.getElementById('entradaTratamiento').value);
-            formData.append('fecha', document.getElementById('entradaFecha').value);
-            formData.append('notas', document.getElementById('entradaNotas').value);
-            if (!formData.get('tratamiento_id')) {
-                alert('Por favor selecciona un tratamiento');
-                return;
-            }
+            
             try {
                 const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
                 const data = await res.json();
+                
                 if (data.success) {
-                    cerrarModalNuevaEntrada();
+                    if (!id && data.data && data.data.id) {
+                        // Entrada recién creada - mantener modal abierto para fotos
+                        entradaActual = { id: data.data.id, fotos: [] };
+                        document.getElementById('entradaId').value = data.data.id;
+                        document.getElementById('fotosPreview').style.display = 'block';
+                        document.getElementById('fotoInput').style.display = 'block';
+                        alert('✅ Entrada guardada. Ahora puedes subir fotos.');
+                    } else {
+                        cerrarModalNuevaEntrada();
+                    }
                     verHistorial(clienteActualBitacora);
                 } else {
                     alert(data.mensaje || 'Error al guardar');
                 }
             } catch (err) {
-                alert('Error de conexión');
+                alert('Error: ' + err.message);
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = '💾 Guardar';
             }
         }
+
+                async function subirFoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const id = document.getElementById('entradaId').value;
+            if (!id) {
+                alert('Primero guarda la entrada');
+                event.target.value = '';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('action', 'subir_foto');
+            formData.append('id', id);
+            formData.append('foto', file);
+            
+            try {
+                const res = await fetch('../api/bitacora.php', { 
+                    method: 'POST', 
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ Foto subida exitosamente');
+                    event.target.value = '';
+                    
+                    // Recargar entrada para ver la foto
+                    const resEntrada = await fetch(`../api/bitacora.php?action=obtener&id=${id}`, { 
+                        credentials: 'same-origin' 
+                    });
+                    const dataEntrada = await resEntrada.json();
+                    if (dataEntrada.success) {
+                        const fotos = JSON.parse(dataEntrada.data.fotos || '[]');
+                        const fotosHTML = fotos.map(foto => 
+                            `<div style="position: relative; width: 100px; height: 100px; display: inline-block; margin: 5px;">
+                                <img src="../${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid #10b981;">
+                            </div>`
+                        ).join('');
+                        document.getElementById('fotosPreview').innerHTML = fotosHTML;
+                        document.getElementById('fotoInput').style.display = fotos.length < 3 ? 'block' : 'none';
+                    }
+                } else {
+                    alert(data.mensaje || 'Error al subir foto');
+                    event.target.value = '';
+                }
+            } catch (err) {
+                console.error('Error completo:', err);
+                alert('Error al subir foto: ' + err.message);
+                event.target.value = '';
+            }
+        }
+
 
         async function editarEntrada(id) {
             try {
@@ -445,27 +510,54 @@ $usuario = usuarioActual();
                 const data = await res.json();
                 if (data.success) {
                     const entrada = data.data;
+                    entradaActual = { id: entrada.id, fotos: JSON.parse(entrada.fotos || '[]') };
+                    
                     document.getElementById('tituloModalEntrada').textContent = 'Editar Entrada';
                     document.getElementById('entradaId').value = entrada.id;
                     document.getElementById('entradaFecha').value = entrada.fecha;
                     document.getElementById('entradaNotas').value = entrada.notas || '';
                     await cargarTratamientosSelect();
                     document.getElementById('entradaTratamiento').value = entrada.tratamiento_id;
-                    const fotos = JSON.parse(entrada.fotos || '[]');
-                    let fotosHTML = '';
-                    fotos.forEach(foto => {
-                        fotosHTML += `<div style="position: relative; width: 100px; height: 100px;"><img src="../${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;"><button onclick="eliminarFotoEntrada(${entrada.id}, '${foto}')" style="position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-weight: bold;">×</button></div>`;
-                    });
+                    
+                    // Mostrar fotos existentes
+                    const fotosHTML = entradaActual.fotos.map(foto => 
+                        `<div style="position: relative; width: 100px; height: 100px; display: inline-block; margin: 5px;">
+                            <img src="../${foto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 2px solid #10b981;">
+                            <button onclick="eliminarFotoExistente(${entrada.id}, '${foto}')" type="button" style="position: absolute; top: 2px; right: 2px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer;">×</button>
+                        </div>`
+                    ).join('');
                     document.getElementById('fotosPreview').innerHTML = fotosHTML;
+                    document.getElementById('fotosPreview').style.display = 'block';
+                    document.getElementById('fotoInput').style.display = entradaActual.fotos.length < 3 ? 'block' : 'none';
+                    
                     document.getElementById('modalNuevaEntrada').classList.add('show');
                 }
             } catch (err) {
-                alert('Error al cargar entrada');
+                alert('Error al cargar entrada: ' + err.message);
+            }
+        }
+
+        async function eliminarFotoExistente(entradaId, rutaFoto) {
+            if (!confirm('¿Eliminar esta foto?')) return;
+            const formData = new FormData();
+            formData.append('action', 'eliminar_foto');
+            formData.append('id', entradaId);
+            formData.append('ruta_foto', rutaFoto);
+            try {
+                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    editarEntrada(entradaId);
+                } else {
+                    alert(data.mensaje || 'Error al eliminar foto');
+                }
+            } catch (err) {
+                alert('Error de conexión');
             }
         }
 
         async function eliminarEntrada(id) {
-            if (!confirm('¿Eliminar esta entrada de la bitácora? Esta acción no se puede deshacer.')) return;
+            if (!confirm('¿Eliminar esta entrada? Esta acción no se puede deshacer.')) return;
             const formData = new FormData();
             formData.append('action', 'eliminar');
             formData.append('id', id);
@@ -481,55 +573,6 @@ $usuario = usuarioActual();
                 alert('Error de conexión');
             }
         }
-
-        async function subirFotoEntrada() {
-            const id = document.getElementById('entradaId').value;
-            if (!id) {
-                alert('Primero guarda la entrada antes de subir fotos');
-                return;
-            }
-            const input = document.getElementById('fotoInput');
-            if (!input.files || input.files.length === 0) {
-                alert('Selecciona una foto');
-                return;
-            }
-            const formData = new FormData();
-            formData.append('action', 'subir_foto');
-            formData.append('id', id);
-            formData.append('foto', input.files[0]);
-            try {
-                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
-                const data = await res.json();
-                if (data.success) {
-                    input.value = '';
-                    editarEntrada(id);
-                } else {
-                    alert(data.mensaje || 'Error al subir foto');
-                }
-            } catch (err) {
-                alert('Error de conexión');
-            }
-        }
-
-        async function eliminarFotoEntrada(id, rutaFoto) {
-            if (!confirm('¿Eliminar esta foto?')) return;
-            const formData = new FormData();
-            formData.append('action', 'eliminar_foto');
-            formData.append('id', id);
-            formData.append('ruta_foto', rutaFoto);
-            try {
-                const res = await fetch('../api/bitacora.php', { method: 'POST', body: formData, credentials: 'same-origin' });
-                const data = await res.json();
-                if (data.success) {
-                    editarEntrada(id);
-                } else {
-                    alert(data.mensaje || 'Error al eliminar foto');
-                }
-            } catch (err) {
-                alert('Error de conexión');
-            }
-        }
-
         function verFotoAmpliada(ruta) {
             const modal = document.createElement('div');
             modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; cursor: pointer;';
