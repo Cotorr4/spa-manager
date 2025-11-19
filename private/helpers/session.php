@@ -31,7 +31,7 @@ function estaAutenticado() {
 // Requerir autenticación (usar en páginas admin)
 function requerirAuth() {
     if (!estaAutenticado()) {
-        header('Location: /spa-manager/private/admin/login.php');
+        header('Location: /spa-manager/public/admin/login.php');
         exit;
     }
 }

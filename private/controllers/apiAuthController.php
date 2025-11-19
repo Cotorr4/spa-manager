@@ -49,7 +49,7 @@ function logout() {
     $usuario = usuarioActual();
     cerrarSesion();
     registrarLog("Logout: " . ($usuario['nombre'] ?? 'Desconocido'));
-    responderJSON(true, ['redirect' => '/spa-manager/private/admin/login.php'], 'Sesión cerrada');
+    responderJSON(true, ['redirect' => '/spa-manager/public/admin/login.php'], 'Sesión cerrada');
 }
 
 function verificarSesion() {
