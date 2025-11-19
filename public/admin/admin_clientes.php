@@ -263,7 +263,7 @@ $usuario = usuarioActual();
                         <td>${c.telefono}</td>
                         <td>${c.email || '-'}</td>
                         <td>
-                            <button class="btn btn-info" onclick="verHistorial(${c.id})">📋 Bitácora</button>
+                            <a href="ver_bitacora.php?cliente_id=${c.id}" class="btn btn-info" style="display: inline-block; text-decoration: none;">📋 Bitácora</a>
                             <button class="btn btn-primary" onclick="editarCliente(${c.id})">Editar</button>
                             <button class="btn btn-danger" onclick="eliminarCliente(${c.id})">Eliminar</button>
                         </td>
