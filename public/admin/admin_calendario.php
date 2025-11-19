@@ -1,8 +1,6 @@
 <?php
 require_once __DIR__ . '/../../private/database/config.php';
 require_once __DIR__ . '/../../private/helpers/session.php';
-ini_set('default_charset', 'UTF-8');
-header('Content-Type: text/html; charset=UTF-8');
 require_once __DIR__ . '/../../private/helpers/utils.php';
 
 requerirAuth();
@@ -29,6 +27,7 @@ $usuario = usuarioActual();
         .sidebar-footer { position: absolute; bottom: 20px; left: 20px; right: 20px; }
         .logout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid #404040; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .logout-btn:hover { border-color: #ef4444; color: #ef4444; }
+        
         .main-content { flex: 1; padding: 30px; }
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .top-bar h2 { font-size: 24px; font-weight: 500; }
@@ -36,43 +35,48 @@ $usuario = usuarioActual();
         .view-toggle { display: flex; gap: 5px; background: #2d2d2d; border: 1px solid #404040; border-radius: 4px; padding: 4px; }
         .view-btn { padding: 8px 16px; background: transparent; border: none; color: #a0a0a0; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .view-btn.active { background: #2563eb; color: white; }
+        
         .nav-calendar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
         .nav-calendar button { padding: 8px 12px; background: #2d2d2d; border: 1px solid #404040; border-radius: 4px; color: #f5f5f5; cursor: pointer; }
         .nav-calendar .current-period { font-size: 16px; font-weight: 500; min-width: 200px; text-align: center; }
+        
         .btn { padding: 10px 20px; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
         .btn-primary { background: #2563eb; color: white; }
-        .btn-primary:hover { background: #1d4ed8; }
-        .btn-secondary { background: #6b7280; color: white; }
         .btn-success { background: #10b981; color: white; }
+        
+        /* COLORES UBICACIONES */
+        .color-selector { display: flex; gap: 10px; padding: 16px; background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; margin-bottom: 20px; }
+        .color-btn { flex: 1; padding: 12px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s; }
+        .color-btn:hover { transform: scale(1.05); }
+        .color-btn.selected { border-color: #fff; box-shadow: 0 0 0 2px #2563eb; }
+        
+        /* VISTA DÍA */
+        .calendar-day { background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; padding: 20px; }
+        .day-slots { display: grid; grid-template-columns: 80px 1fr; gap: 2px; }
+        .slot-time { padding: 12px; text-align: right; color: #a0a0a0; font-size: 14px; background: #1a1a1a; }
+        .slot-content { padding: 12px; border: 2px solid #404040; border-radius: 4px; cursor: pointer; transition: all 0.2s; min-height: 40px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
+        .slot-content:hover { border-color: #2563eb; }
+        .slot-content.occupied { background: #ef4444; color: white; border-color: #ef4444; cursor: not-allowed; }
+        
+        /* VISTA SEMANA */
+        .semana-controls { padding: 16px; background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 16px; align-items: center; }
+        .semana-controls select { padding: 8px 12px; background: #1a1a1a; border: 1px solid #404040; color: #f5f5f5; border-radius: 4px; }
         
         .calendar-week { display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 1px; background: #404040; border: 1px solid #404040; }
         .calendar-header { background: #2d2d2d; padding: 12px; text-align: center; font-size: 13px; font-weight: 500; }
         .calendar-header.corner { background: #1a1a1a; }
         .time-slot { background: #2d2d2d; padding: 8px; text-align: right; font-size: 12px; color: #a0a0a0; }
         .day-cell { background: #2d2d2d; padding: 8px; min-height: 60px; position: relative; }
-        .day-cell.available { background: #10b981; opacity: 0.3; }
-        .day-cell.closed { background: #1a1a1a; opacity: 0.5; }
-        .reservation-block { background: #2563eb; color: white; padding: 4px 6px; border-radius: 4px; font-size: 11px; margin-bottom: 4px; cursor: pointer; }
-        .location-badge { font-size: 10px; color: #10b981; }
+        .location-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; color: white; }
         
-        .calendar-day { background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; padding: 20px; }
-        .day-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #404040; }
-        .day-slots { display: grid; grid-template-columns: 100px 1fr; gap: 10px; }
-        .slot-time { padding: 10px; text-align: right; color: #a0a0a0; font-size: 14px; }
-        .slot-content { padding: 10px; background: #1a1a1a; border: 1px solid #404040; border-radius: 4px; }
-        .slot-content.available { background: #10b981; color: white; border-color: #10b981; }
-        .slot-content.occupied { background: #2563eb; color: white; }
-        
+        /* VISTA MES */
         .calendar-month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: #404040; border: 1px solid #404040; margin-top: 20px; }
-        .month-day { background: #2d2d2d; padding: 8px; min-height: 100px; }
+        .month-day { background: #2d2d2d; padding: 8px; min-height: 100px; cursor: pointer; transition: all 0.2s; }
+        .month-day:hover { background: #404040; }
         .month-day.other-month { opacity: 0.3; }
         .month-day.today { border: 2px solid #2563eb; }
         .day-number { font-size: 14px; font-weight: 500; margin-bottom: 8px; }
         .day-info { font-size: 11px; color: #a0a0a0; }
-        
-        .month-controls { margin-bottom: 20px; padding: 16px; background: #2d2d2d; border: 1px solid #404040; border-radius: 8px; }
-        .month-controls label { font-size: 13px; color: #a0a0a0; margin-right: 8px; }
-        .month-controls select { padding: 8px; background: #1a1a1a; border: 1px solid #404040; color: #f5f5f5; border-radius: 4px; margin-right: 16px; }
         
         .loading { text-align: center; padding: 40px; color: #a0a0a0; }
     </style>
@@ -129,16 +133,28 @@ $usuario = usuarioActual();
     <script>
         let vistaActual = 'dia';
         let fechaActual = new Date();
-        let ubicacionActualDia = 1;
+        let ubicacionSeleccionada = 1;
+        let ubicaciones = {};
         const API_URL = '../api/calendario.php';
-        const ubicaciones = {
-            1: 'Sede Principal Pucallpa',
-            2: 'Sede Secundaria Pucallpa',
-            3: 'Sede Antofagasta',
-            4: 'Atención a Domicilio'
-        };
         
-        cargarCalendario();
+        cargarUbicaciones();
+        
+        async function cargarUbicaciones() {
+            try {
+                const res = await fetch('../api/ubicaciones.php', { credentials: 'same-origin' }?action=listar');
+                const data = await res.json();
+                if (data.success) {
+                    data.data.forEach(u => {
+                        ubicaciones[u.id] = { nombre: u.nombre, color: u.color };
+                    });
+                    cargarCalendario();
+                }
+            } catch (err) {
+                console.error("Error cargando calendario:", err);
+                console.error('Error cargando ubicaciones:', err);
+                cargarCalendario();
+            }
+        }
         
         function cambiarVista(vista) {
             vistaActual = vista;
@@ -163,7 +179,16 @@ $usuario = usuarioActual();
             cargarCalendario();
         }
         
+        function irADia(fecha) {
+            fechaActual = new Date(fecha + 'T00:00:00');
+            vistaActual = 'dia';
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.view-btn')[1].classList.add('active');
+            cargarCalendario();
+        }
+        
         async function cargarCalendario() {
+            console.log("Cargando calendario:", vistaActual, fechaActual.toISOString(), ubicacionSeleccionada);
             try {
                 let url = API_URL + '?';
                 let params = new URLSearchParams();
@@ -174,263 +199,202 @@ $usuario = usuarioActual();
                 } else if (vistaActual === 'dia') {
                     params.append('action', 'obtener_dia');
                     params.append('fecha', fechaActual.toISOString().split('T')[0]);
-                    params.append('ubicacion_id', ubicacionActualDia);
+                    params.append('ubicacion_id', ubicacionSeleccionada);
                 } else if (vistaActual === 'mes') {
                     params.append('action', 'obtener_mes');
                     params.append('anio', fechaActual.getFullYear());
                     params.append('mes', fechaActual.getMonth() + 1);
                 }
                 
-                const res = await fetch(url + params.toString());
+                const res = await fetch(url + params, { credentials: "same-origin" }.toString());
                 const data = await res.json();
                 
                 if (data.success) {
                     if (vistaActual === 'semana') renderSemana(data.data);
                     else if (vistaActual === 'dia') renderDia(data.data);
                     else if (vistaActual === 'mes') renderMes(data.data);
-                } else {
-                    throw new Error(data.mensaje || 'Error al cargar');
                 }
             } catch (err) {
+                console.error("Error cargando calendario:", err);
                 console.error('Error:', err);
-                document.getElementById('calendarContainer').innerHTML = '<div class="loading">Error: ' + err.message + '</div>';
             }
         }
         
         function renderDia(data) {
-            document.getElementById('currentPeriod').textContent = formatearFecha(data.fecha);
-            
-            let html = '<div class="calendar-day">';
-            html += '<div class="day-header"><h3>' + formatearFecha(data.fecha) + '</h3>';
-            html += '<div style="margin-top: 10px;"><label>Ubicación: <select id="ubicacionDia" onchange="cambiarUbicacionDia()" style="padding: 8px; background: #1a1a1a; border: 1px solid #404040; color: #f5f5f5; border-radius: 4px;">';
-            html += '<option value="1" ' + (ubicacionActualDia == 1 ? 'selected' : '') + '>Sede Principal Pucallpa</option>';
-            html += '<option value="2" ' + (ubicacionActualDia == 2 ? 'selected' : '') + '>Sede Secundaria Pucallpa</option>';
-            html += '<option value="3" ' + (ubicacionActualDia == 3 ? 'selected' : '') + '>Sede Antofagasta</option>';
-            html += '<option value="4" ' + (ubicacionActualDia == 4 ? 'selected' : '') + '>Atención a Domicilio</option>';
-            html += '</select></label></div></div>';
-            
-            html += '<div class="day-slots">';
-            
-            // Crear mapa de slots habilitados
-            const slotsMap = {};
-            data.slots.forEach(s => {
-                const horaKey = s.hora.substring(0, 5);
-                slotsMap[horaKey] = true;
+            const fechaFormateada = new Date(data.fecha + 'T00:00:00').toLocaleDateString('es-ES', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
             });
+            document.getElementById('currentPeriod').textContent = fechaFormateada;
             
-            // Todos los slots 8:00-17:30
-            for (let hora = 8; hora < 18; hora++) {
-                for (let min = 0; min < 60; min += 30) {
-                    const horaStr = String(hora).padStart(2,'0') + ':' + String(min).padStart(2,'0');
-                    const reserva = data.reservas.find(r => r.hora.startsWith(horaStr) && r.ubicacion_id == ubicacionActualDia);
-                    const isDisponible = slotsMap[horaStr] || false;
-                    
-                    let slotClass = 'slot-content';
-                    let slotContent = '';
-                    
-                    if (reserva && reserva.estado !== 'cancelada') {
-                        slotClass += ' occupied';
-                        slotContent = '<strong>' + reserva.cliente_nombre + '</strong><br>' + reserva.tratamiento_nombre;
-                    } else if (isDisponible) {
-                        slotClass += ' available';
-                        slotContent = '<button class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="toggleSlot(\'' + data.fecha + '\', \'' + horaStr + '\', false)">Deshabilitar</button>';
-                    } else {
-                        slotContent = '<button class="btn btn-primary" style="font-size: 12px; padding: 6px 12px;" onclick="toggleSlot(\'' + data.fecha + '\', \'' + horaStr + '\', true)">Habilitar</button>';
-                    }
-                    
-                    html += '<div class="slot-time">' + horaStr + '</div>';
-                    html += '<div class="' + slotClass + '">' + slotContent + '</div>';
-                }
+            // Selector de colores por ubicación
+            let coloresHTML = '<div class="color-selector">';
+            coloresHTML += '<div style="flex: 1; font-size: 14px; color: #a0a0a0; display: flex; align-items: center;">Selecciona ubicación:</div>';
+            
+            for (let id in ubicaciones) {
+                coloresHTML += `
+                    <button class="color-btn ${ubicacionSeleccionada == id ? 'selected' : ''}" 
+                            style="background: ${ubicaciones[id].color}; color: white;"
+                            onclick="seleccionarUbicacion(${id})">
+                        ${ubicaciones[id].nombre}
+                    </button>
+                `;
             }
             
-            html += '</div></div>';
-            document.getElementById('calendarContainer').innerHTML = html;
+            // Botón deshabilitar
+            coloresHTML += `
+                <button class="color-btn ${ubicacionSeleccionada == 0 ? 'selected' : ''}" 
+                        style="background: #6b7280; color: white;"
+                        onclick="seleccionarUbicacion(0)">
+                    Deshabilitar
+                </button>
+            `;
+            coloresHTML += '</div>';
+            
+            // Grid de slots
+            let slotsHTML = '<div class="calendar-day"><div class="day-slots">';
+            data.slots.forEach(slot => {
+                const bgcolor = slot.ubicacion_id ? (ubicaciones[slot.ubicacion_id]?.color || '#6b7280') : '#1a1a1a';
+                const textcolor = slot.ubicacion_id ? 'white' : '#6b7280';
+                const ubicacionNombre = slot.ubicacion_id ? ubicaciones[slot.ubicacion_id]?.nombre : 'Deshabilitado';
+                
+                slotsHTML += `
+                    <div class="slot-time">${slot.hora}</div>
+                    <div class="slot-content ${slot.ocupado ? 'occupied' : ''}" 
+                         style="background: ${bgcolor}; color: ${textcolor};"
+                         onclick="${slot.ocupado ? '' : `toggleSlot('${data.fecha}', '${slot.hora}')`}">
+                        ${slot.ocupado ? 'RESERVADO' : ubicacionNombre}
+                    </div>
+                `;
+            });
+            slotsHTML += '</div></div>';
+            
+            document.getElementById('calendarContainer').innerHTML = coloresHTML + slotsHTML;
         }
         
-        async function toggleSlot(fecha, hora, habilitar) {
+        function seleccionarUbicacion(ubicacionId) {
+            ubicacionSeleccionada = ubicacionId;
+            cargarCalendario();
+        }
+        
+        async function toggleSlot(fecha, hora) {
             const formData = new FormData();
             formData.append('action', 'toggle_slot');
             formData.append('fecha', fecha);
             formData.append('hora', hora);
-            formData.append('ubicacion_id', ubicacionActualDia);
-            if (habilitar) formData.append('habilitar', '1');
+            formData.append('ubicacion_id', ubicacionSeleccionada);
             
             try {
-                const res = await fetch(API_URL, { method: 'POST', body: formData });
+                const res = await fetch(API_URL, { credentials: "same-origin" }, { method: 'POST', body: formData, credentials: 'same-origin' });
                 const data = await res.json();
-                
                 if (data.success) {
                     cargarCalendario();
                 } else {
-                    alert(data.mensaje || 'Error al actualizar');
+                    alert(data.mensaje || 'Error al actualizar slot');
                 }
             } catch (err) {
-                alert('Error: ' + err.message);
+                console.error("Error cargando calendario:", err);
+                alert('Error de conexión');
             }
-        }
-        
-        function cambiarUbicacionDia() {
-            ubicacionActualDia = parseInt(document.getElementById('ubicacionDia').value);
-            cargarCalendario();
         }
         
         function renderSemana(data) {
-            const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-            document.getElementById('currentPeriod').textContent = formatearRango(data.inicio_semana, data.fin_semana);
+            const inicio = new Date(data.inicio + 'T00:00:00');
+            const fin = new Date(data.fin + 'T00:00:00');
+            document.getElementById('currentPeriod').textContent = 
+                `${inicio.toLocaleDateString('es-ES', {day: 'numeric', month: 'short'})} - ${fin.toLocaleDateString('es-ES', {day: 'numeric', month: 'short', year: 'numeric'})}`;
             
-            let html = '<div class="calendar-week">';
-            html += '<div class="calendar-header corner"></div>';
-            
-            const inicio = new Date(data.inicio_semana + 'T00:00:00');
-            for (let i = 0; i < 7; i++) {
-                const dia = new Date(inicio);
-                dia.setDate(inicio.getDate() + i);
-                html += '<div class="calendar-header">' + dias[i] + '<br><small>' + dia.getDate() + '/' + (dia.getMonth()+1) + '</small></div>';
+            // Controles de semana
+            let controlsHTML = `
+                <div class="semana-controls">
+                    <label style="color: #a0a0a0;">Ubicación:</label>
+                    <select id="ubicacionSemana" onchange="ubicacionSeleccionada = this.value">
+            `;
+            for (let id in ubicaciones) {
+                controlsHTML += `<option value="${id}" ${ubicacionSeleccionada == id ? 'selected' : ''}>${ubicaciones[id].nombre}</option>`;
             }
+            controlsHTML += `
+                    </select>
+                    <button class="btn btn-success" onclick="habilitarSemanaCompleta()">Habilitar Semana Completa</button>
+                </div>
+            `;
             
-            // Crear mapa de slots
-            const slotsMap = {};
-            data.slots.forEach(s => {
-                const key = s.fecha + '_' + s.hora.substring(0, 5);
-                slotsMap[key] = s.ubicacion_id;
+            // Grid semana
+            let weekHTML = '<div class="calendar-week">';
+            weekHTML += '<div class="calendar-header corner">Hora</div>';
+            
+            const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            data.dias.forEach(dia => {
+                const fecha = new Date(dia.fecha + 'T00:00:00');
+                weekHTML += `<div class="calendar-header">${diasSemana[fecha.getDay()]}<br>${fecha.getDate()}</div>`;
             });
             
-            for (let hora = 8; hora < 18; hora++) {
-                for (let min = 0; min < 60; min += 30) {
-                    const horaStr = String(hora).padStart(2,'0') + ':' + String(min).padStart(2,'0');
-                    html += '<div class="time-slot">' + horaStr + '</div>';
-                    
-                    for (let i = 0; i < 7; i++) {
-                        const dia = new Date(inicio);
-                        dia.setDate(inicio.getDate() + i);
-                        const fechaStr = dia.toISOString().split('T')[0];
-                        const key = fechaStr + '_' + horaStr;
-                        
-                        const reservasEnSlot = data.reservas.filter(r => 
-                            r.fecha === fechaStr && r.hora.startsWith(horaStr)
-                        );
-                        
-                        let cellClass = 'day-cell';
-                        let cellContent = '';
-                        
-                        if (slotsMap[key]) {
-                            cellClass += ' available';
-                            cellContent = '<div class="location-badge">' + ubicaciones[slotsMap[key]] + '</div>';
-                        }
-                        
-                        if (reservasEnSlot.length > 0) {
-                            reservasEnSlot.forEach(r => {
-                                cellContent += '<div class="reservation-block">' + r.cliente_nombre + '</div>';
-                            });
-                        }
-                        
-                        html += '<div class="' + cellClass + '">' + cellContent + '</div>';
-                    }
-                }
-            }
+            const horas = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', 
+                          '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', 
+                          '16:00', '16:30', '17:00', '17:30'];
             
-            html += '</div>';
-            document.getElementById('calendarContainer').innerHTML = html;
+            horas.forEach(hora => {
+                weekHTML += `<div class="time-slot">${hora}</div>`;
+                data.dias.forEach(dia => {
+                    const slot = dia.slots.find(s => s.hora === hora);
+                    const bgcolor = slot?.ubicacion_id ? (ubicaciones[slot.ubicacion_id]?.color || '#2d2d2d') : '#2d2d2d';
+                    weekHTML += `<div class="day-cell" style="background: ${bgcolor}"></div>`;
+                });
+            });
+            
+            weekHTML += '</div>';
+            document.getElementById('calendarContainer').innerHTML = controlsHTML + weekHTML;
+        }
+        
+        async function habilitarSemanaCompleta() {
+            if (!confirm('¿Habilitar todos los slots Lun-Vie 8:00-17:30 para la ubicación seleccionada?')) return;
+            
+            const formData = new FormData();
+            formData.append('action', 'habilitar_semana');
+            formData.append('fecha', fechaActual.toISOString().split('T')[0]);
+            formData.append('ubicacion_id', ubicacionSeleccionada);
+            
+            try {
+                const res = await fetch(API_URL, { credentials: "same-origin" }, { method: 'POST', body: formData, credentials: 'same-origin' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Semana habilitada correctamente');
+                    cargarCalendario();
+                } else {
+                    alert(data.mensaje || 'Error');
+                }
+            } catch (err) {
+                console.error("Error cargando calendario:", err);
+                alert('Error de conexión');
+            }
         }
         
         function renderMes(data) {
-            const nombreMes = new Date(data.anio, data.mes - 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-            document.getElementById('currentPeriod').textContent = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+            const fecha = new Date(data.anio, data.mes - 1, 1);
+            document.getElementById('currentPeriod').textContent = 
+                fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
             
-            let html = '<div class="month-controls">';
-            html += '<label>Ubicación:</label>';
-            html += '<select id="mesUbicacion">';
-            html += '<option value="1">Sede Principal Pucallpa</option>';
-            html += '<option value="2">Sede Secundaria Pucallpa</option>';
-            html += '<option value="3">Sede Antofagasta</option>';
-            html += '<option value="4">Atención a Domicilio</option>';
-            html += '</select>';
-            html += '<button class="btn btn-success" onclick="habilitarMesCompleto()">Habilitar Mes Completo</button>';
-            html += '</div>';
+            let mesHTML = '<div class="calendar-month">';
+            const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
             
-            const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-            html += '<div class="calendar-month">';
-            
-            dias.forEach(dia => {
-                html += '<div class="calendar-header">' + dia + '</div>';
+            diasSemana.forEach(dia => {
+                mesHTML += `<div class="calendar-header">${dia}</div>`;
             });
             
-            const primerDia = new Date(data.anio, data.mes - 1, 1);
-            const ultimoDia = new Date(data.anio, data.mes, 0);
-            const primerDiaSemana = primerDia.getDay() === 0 ? 7 : primerDia.getDay();
-            
-            // Contar slots por día
-            const slotsCountMap = {};
-            data.slots.forEach(s => {
-                slotsCountMap[s.fecha] = (slotsCountMap[s.fecha] || 0) + 1;
+            data.dias.forEach(dia => {
+                const esHoy = dia.fecha === new Date().toISOString().split('T')[0];
+                const esOtroMes = dia.es_otro_mes;
+                
+                mesHTML += `
+                    <div class="month-day ${esOtroMes ? 'other-month' : ''} ${esHoy ? 'today' : ''}"
+                         onclick="irADia('${dia.fecha}')">
+                        <div class="day-number">${dia.numero}</div>
+                        <div class="day-info">${dia.slots_habilitados} slots</div>
+                    </div>
+                `;
             });
             
-            for (let i = 1; i < primerDiaSemana; i++) {
-                html += '<div class="month-day other-month"></div>';
-            }
-            
-            for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
-                const fecha = new Date(data.anio, data.mes - 1, dia);
-                const fechaStr = fecha.toISOString().split('T')[0];
-                const slotsCount = slotsCountMap[fechaStr] || 0;
-                const reservasDelDia = data.reservas.filter(r => r.fecha === fechaStr);
-                
-                const hoy = new Date().toISOString().split('T')[0];
-                let dayClass = 'month-day';
-                if (fechaStr === hoy) dayClass += ' today';
-                
-                html += '<div class="' + dayClass + '">';
-                html += '<div class="day-number">' + dia + '</div>';
-                if (slotsCount > 0) {
-                    html += '<div class="day-info">' + slotsCount + ' slots habilitados</div>';
-                }
-                if (reservasDelDia.length > 0) {
-                    html += '<div class="day-info" style="color: #2563eb;">' + reservasDelDia.length + ' reservas</div>';
-                }
-                html += '</div>';
-            }
-            
-            html += '</div>';
-            document.getElementById('calendarContainer').innerHTML = html;
-        }
-        
-        async function habilitarMesCompleto() {
-            const ubicacionId = document.getElementById('mesUbicacion').value;
-            const anio = fechaActual.getFullYear();
-            const mes = fechaActual.getMonth() + 1;
-            
-            if (!confirm('¿Habilitar TODOS los días del mes con todos los horarios (8:00-17:30)?')) return;
-            
-            const formData = new FormData();
-            formData.append('action', 'habilitar_mes');
-            formData.append('anio', anio);
-            formData.append('mes', mes);
-            formData.append('ubicacion_id', ubicacionId);
-            
-            try {
-                const res = await fetch(API_URL, { method: 'POST', body: formData });
-                const data = await res.json();
-                
-                if (data.success) {
-                    alert('Mes completo habilitado');
-                    cargarCalendario();
-                } else {
-                    alert(data.mensaje || 'Error al habilitar mes');
-                }
-            } catch (err) {
-                alert('Error: ' + err.message);
-            }
-        }
-        
-        function formatearFecha(fecha) {
-            const d = new Date(fecha + 'T00:00:00');
-            return d.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        }
-        
-        function formatearRango(inicio, fin) {
-            const d1 = new Date(inicio + 'T00:00:00');
-            const d2 = new Date(fin + 'T00:00:00');
-            return d1.getDate() + '/' + (d1.getMonth()+1) + ' - ' + d2.getDate() + '/' + (d2.getMonth()+1) + '/' + d2.getFullYear();
+            mesHTML += '</div>';
+            document.getElementById('calendarContainer').innerHTML = mesHTML;
         }
         
         function cerrarSesion() {
