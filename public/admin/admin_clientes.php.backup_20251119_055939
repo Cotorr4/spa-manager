@@ -280,62 +280,39 @@ $usuario = usuarioActual();
             }
         }
         
-                let clienteActualBitacora = null;
-
-        async function verHistorial(clienteId) {
-            clienteActualBitacora = clienteId;
-            const cliente = clientes.find(c => c.id == clienteId);
-            
+        async function verHistorial(id) {
             try {
-                const res = await fetch(`../api/bitacora.php?action=listar&cliente_id=${clienteId}`, {
-                    credentials: 'same-origin'
-                });
+                const res = await fetch(API_URL + '?action=historial&id=' + id);
                 const data = await res.json();
                 
-                let html = `
-                    <div style="margin-bottom: 20px;">
-                        <h3 style="margin-bottom: 10px;">${cliente.nombre} (${cliente.cliente_codigo})</h3>
-                        <button class="btn btn-primary" onclick="abrirModalNuevaEntrada()">+ Nueva Entrada</button>
-                    </div>
-                `;
+                const cliente = clientes.find(c => c.id == id);
+                let html = `<h3>${cliente.nombre}</h3><p style="color: #a0a0a0; margin-bottom: 20px;">UID: ${cliente.cliente_uid}</p>`;
                 
-                if (data.success && data.data && data.data.length > 0) {
-                    data.data.forEach(entrada => {
-                        const fotos = JSON.parse(entrada.fotos || '[]');
-                        const fechaFormato = new Date(entrada.fecha + 'T12:00:00').toLocaleDateString('es-ES', {
-                            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                        });
-                        html += `<div class="historial-item" style="padding: 16px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                                <div>
-                                    <div class="fecha">📅 ${fechaFormato}</div>
-                                    <div class="tratamiento">${entrada.tratamiento_nombre}</div>
-                                </div>
+                if (data.success && data.data.length > 0) {
+                    html += '<h4 style="margin-bottom: 16px;">Reservas</h4>';
+                    data.data.forEach(r => {
+                        html += `
+                            <div class="historial-item">
+                                <div class="fecha">${r.fecha} - ${r.hora}</div>
+                                <div class="tratamiento">${r.tratamiento_nombre}</div>
+                                <div class="estado">Estado: ${r.estado} | ${r.ubicacion_nombre}</div>
                             </div>
-                            ${entrada.notas ? `<div style="background: #2d2d2d; padding: 12px; border-radius: 6px; margin-bottom: 8px;"><div style="font-size: 12px; color: #a0a0a0; margin-bottom: 6px;">Observaciones:</div><div style="white-space: pre-wrap; font-size: 14px;">${entrada.notas}</div></div>` : '<div style="color: #6b7280; font-size: 13px; font-style: italic;">Sin observaciones</div>'}
-                            ${fotos.length > 0 ? `<div style="color: #10b981; font-size: 13px;">📷 ${fotos.length} foto(s)</div>` : '<div style="color: #6b7280; font-size: 13px;">📷 Sin fotos</div>'}
-                        </div>`;
+                        `;
                     });
                 } else {
-                    html += '<div style="text-align: center; padding: 40px; color: #6b7280;"><p style="font-size: 16px; margin-bottom: 10px;">📋 Sin entradas en la bitácora</p><p style="font-size: 14px;">Agrega la primera entrada para comenzar el seguimiento</p></div>';
+                    html += '<p style="color: #a0a0a0;">No tiene reservas registradas</p>';
                 }
                 
                 document.getElementById('contenidoHistorial').innerHTML = html;
                 document.getElementById('modalHistorial').classList.add('show');
             } catch (err) {
-                console.error('Error:', err);
-                alert('Error al cargar bitácora');
+                alert('Error al cargar historial');
             }
         }
-
+        
         function cerrarModalHistorial() {
             document.getElementById('modalHistorial').classList.remove('show');
         }
-
-        function abrirModalNuevaEntrada() {
-            alert('Funcionalidad en desarrollo - Próximamente podrás agregar entradas');
-        }
-
         
         document.getElementById('formCliente').addEventListener('submit', async (e) => {
             e.preventDefault();
