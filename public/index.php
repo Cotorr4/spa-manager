@@ -23,13 +23,23 @@ $direccion = $perfil['direccion_visible'] ?? '';
 $instagram = $perfil['instagram'] ?? '';
 $facebook = $perfil['facebook'] ?? '';
 
-// WhatsApp (Importante: sanitizar link)
+// WhatsApp (Sanitizar)
+function sanitizeWhatsApp($link) {
+    if (empty($link)) return '#';
+    if (preg_match('/^\+?[0-9\s]+$/', $link)) {
+        $clean = preg_replace('/[^0-9]/', '', $link);
+        return 'https://wa.me/' . $clean;
+    }
+    if (strpos($link, 'http') === false) return 'https://' . $link;
+    return $link;
+}
+$wa_link = sanitizeWhatsApp($perfil['whatsapp'] ?? '');
+
 function sanitizeLink($link) {
     if (empty($link)) return '#';
-    if (strpos($link, 'http') === 0) return $link;
-    return 'https://' . $link; // Forzar protocolo si falta
+    if (strpos($link, 'http') === false) return 'https://' . $link;
+    return $link;
 }
-$wa_link = sanitizeLink($perfil['whatsapp']);
 
 // 2. Obtener Tratamientos
 $sql_tratamientos = "
@@ -40,7 +50,6 @@ $sql_tratamientos = "
 ";
 $tratamientos = $conn->query($sql_tratamientos);
 
-// Helper Imagen
 function getUrlImagen($nombreArchivo) {
     if (empty($nombreArchivo)) return 'assets/img/no-image.png';
     return 'storage/tratamientos/' . $nombreArchivo;
@@ -127,46 +136,137 @@ function getUrlImagen($nombreArchivo) {
         <h2 class="section-title">NUESTROS SERVICIOS</h2>
         <div class="grid">
             <?php if ($tratamientos && $tratamientos->num_rows > 0): ?>
-                <?php while($t = $tratamientos->fetch_assoc()): ?>
-                    <div class="card">
-                        <img src="<?php echo htmlspecialchars(getUrlImagen($t['foto'])); ?>" 
-                             class="card-img" 
-                             alt="<?php echo htmlspecialchars($t['nombre']); ?>"
-                             onerror="this.src='assets/img/no-image.png'">
+                <?php while($t = $tratamientos->fetch_assoc()): 
+                    $imgUrl = getUrlImagen($t['foto']);
+                ?>
+                    <div class="card" 
+                         onclick='abrirDetalle(<?php echo json_encode([
+                             "nombre" => $t["nombre"],
+                             "subtitulo" => $t["subtitulo"] ?? "",
+                             "descripcion" => $t["descripcion"],
+                             "precio" => number_format($t["precio"], 0),
+                             "duracion" => $t["duracion"],
+                             "img" => $imgUrl
+                         ]); ?>)'>
+                        
+                        <img src="<?php echo htmlspecialchars($imgUrl); ?>" class="card-img" alt="Img" onerror="this.src='assets/img/no-image.png'">
                         
                         <div class="card-body">
                             <h3 class="card-title"><?php echo htmlspecialchars($t['nombre']); ?></h3>
                             <p class="card-desc">
                                 <?php echo htmlspecialchars(substr($t['descripcion'] ?? '', 0, 100)); ?>...
                             </p>
-                            
                             <div class="card-footer">
                                 <div>
                                     <div class="price">$<?php echo number_format($t['precio'], 0); ?></div>
                                     <span style="font-size:0.8rem; color:#666;"><?php echo $t['duracion']; ?> min</span>
                                 </div>
-                                <a href="reservar_cita.php?t=<?php echo urlencode($t['nombre']); ?>" 
-                                   class="btn" style="font-size:0.8rem; padding:8px 15px;">RESERVAR</a>
+                                <span class="btn" style="font-size:0.8rem; padding:6px 15px;">VER MÁS</span>
                             </div>
                         </div>
                     </div>
                 <?php endwhile; ?>
-            <?php else: ?>
-                <p style="width:100%; text-align:center; color:var(--text-muted);">No hay tratamientos activos.</p>
             <?php endif; ?>
         </div>
     </section>
 
     <footer>
-        <p style="margin-bottom:10px;">Contacto: <?php echo htmlspecialchars($tel_publico); ?></p>
-        <p style="margin-bottom:20px; font-size:0.8rem;">Desarrollado por <a href="https://bitnergia.cl" target="_blank" style="color:#3b82f6;">Bitnergia.cl</a></p>
-        <small>© <?php echo date('Y'); ?> Todos los derechos reservados.</small>
+        <h3 style="color:var(--text-main); margin-bottom:15px;">UBICACIÓN Y CONTACTO</h3>
+        
+        <?php if($direccion): ?>
+            <p>📍 <?php echo htmlspecialchars($direccion); ?></p>
+        <?php endif; ?>
+        
+        <?php if($horarios): ?>
+            <p>🕐 <?php echo htmlspecialchars($horarios); ?></p>
+        <?php endif; ?>
+        
+        <p>📞 <a href="<?php echo htmlspecialchars($wa_link); ?>" target="_blank"><?php echo htmlspecialchars($tel_publico); ?></a></p>
+        
+        <?php if($email_publico): ?>
+            <p>✉️ <a href="mailto:<?php echo htmlspecialchars($email_publico); ?>"><?php echo htmlspecialchars($email_publico); ?></a></p>
+        <?php endif; ?>
+
+        <?php if($instagram || $facebook): ?>
+        <div class="footer-social">
+            <?php if($instagram): ?>
+                <a href="<?php echo sanitizeLink('instagram.com/'.$instagram); ?>" target="_blank">INSTAGRAM</a>
+            <?php endif; ?>
+            <?php if($facebook): ?>
+                <a href="<?php echo sanitizeLink('facebook.com/'.$facebook); ?>" target="_blank">FACEBOOK</a>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <div style="border-top:1px solid #333; margin-top:30px; padding-top:20px; font-size:0.8rem;">
+            Desarrollado por <a href="https://bitnergia.cl" target="_blank" style="color:#3b82f6;">Bitnergia.cl</a>
+            <br>
+            © <?php echo date('Y'); ?> <?php echo htmlspecialchars($titulo); ?>
+        </div>
     </footer>
+</div>
+
+<div class="tm-overlay" id="tmOverlay" onclick="cerrarDetalle(event)">
+    <div class="tm-content">
+        <button class="tm-close" onclick="cerrarDetalleBtn()">✕</button>
+        
+        <div class="tm-img-container">
+            <img src="" id="tmImg" class="tm-img" alt="Detalle">
+        </div>
+        
+        <div class="tm-body">
+            <h2 id="tmTitle" class="tm-title"></h2>
+            <div id="tmSubtitle" class="tm-subtitle"></div>
+            <div id="tmDesc" class="tm-desc"></div>
+            
+            <div class="tm-footer">
+                <div>
+                    <div id="tmPrice" class="tm-price"></div>
+                    <div class="tm-duration">⏱ <span id="tmDuration"></span> min</div>
+                </div>
+                <a href="#" id="tmBtn" class="btn" style="padding: 12px 30px; font-size: 1rem;">RESERVAR CITA</a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     function toggleMenu() {
         document.getElementById('navMenu').classList.toggle('active');
+    }
+
+    const overlay = document.getElementById('tmOverlay');
+    
+    function abrirDetalle(data) {
+        document.getElementById('tmImg').src = data.img;
+        document.getElementById('tmTitle').innerText = data.nombre;
+        
+        const sub = document.getElementById('tmSubtitle');
+        if(data.subtitulo) {
+            sub.innerText = data.subtitulo;
+            sub.style.display = 'block';
+        } else {
+            sub.style.display = 'none';
+        }
+
+        document.getElementById('tmDesc').innerText = data.descripcion;
+        document.getElementById('tmPrice').innerText = '$' + data.precio;
+        document.getElementById('tmDuration').innerText = data.duracion;
+        
+        const btn = document.getElementById('tmBtn');
+        btn.href = 'reservar_cita.php?t=' + encodeURIComponent(data.nombre);
+        
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden'; 
+    }
+
+    function cerrarDetalle(e) {
+        if (e.target === overlay) cerrarDetalleBtn();
+    }
+    
+    function cerrarDetalleBtn() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
     }
 </script>
 
