@@ -62,6 +62,8 @@ try {
             break;
             
         case 'actualizar':
+            error_log('POST recibido: ' . print_r($_POST, true));
+            error_log('POST recibido: ' . print_r($_POST, true));
             $id = limpiarInt($_POST['id'] ?? 0);
             $datos = [
                 'tratamiento_id' => limpiarInt($_POST['tratamiento_id'] ?? 0),
@@ -70,9 +72,10 @@ try {
                 'fotos' => json_decode($_POST['fotos'] ?? '[]', true)
             ];
             
+            file_put_contents('/tmp/debug_datos.txt', print_r($datos, true));
             $resultado = $modelo->actualizar($id, $datos);
             if ($resultado) {
-                responderJSON(true, null, 'Entrada actualizada exitosamente');
+                responderJSON(true, ['debug_notas' => $datos['notas'], 'debug_post_notas' => $_POST['notas'] ?? 'NO EXISTE'], 'Entrada actualizada');
             } else {
                 responderJSON(false, null, 'Error al actualizar entrada');
             }
